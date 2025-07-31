@@ -1,1 +1,1 @@
-web: gunicorn resume_analyzer:app
+web: gunicorn resume_analyzer_api:app
