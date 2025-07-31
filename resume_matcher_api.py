@@ -6,29 +6,87 @@ from spacy.matcher import Matcher
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Import CORS
+from flask_cors import CORS
 
-# --- 1. Load NLP Models and Define Skills ---
 
-print("✅ Loading spaCy model...")
+# --- Load NLP Models and Skills ---
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    print("❌ spaCy model not found. Please run: python -m spacy download en_core_web_sm")
+    print("spaCy model not found. Please run: python -m spacy download en_core_web_sm")
     exit()
-print("✅ spaCy model loaded.")
 
-print("✅ Loading SentenceTransformer model...")
-semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
-print("✅ SentenceTransformer model loaded.")
+print("Loading Sentence Transformer model...")
+semantic_model = SentenceTransformer('paraphrase-MiniLM-L3-v2')  # ✅ Lightweight
+print("Model loaded successfully.")
 
-SKILL_LIST = [  # (unchanged, keeping your full list)
-    # ... your entire skill list unchanged ...
+SKILL_LIST = [
+    # --- Technical & Programming ---
+    'python', 'java', 'javascript', 'c++', 'sql', 'r', 'go', 'php', 'ruby', 'swift', 'kotlin',
+    'html', 'css', 'jquery', 'typescript', 'bash', 'powershell',
+    
+    # --- Web Development & Frameworks ---
+    'react', 'angular', 'vue', 'node.js', 'express.js', 'django', 'flask', 'laravel', 
+    'ruby on rails', 'asp.net', 'spring boot', 'bootstrap', 'tailwind css',
+    
+    # --- Databases ---
+    'mysql', 'postgresql', 'mongodb', 'sql server', 'oracle', 'sqlite', 'redis',
+    'cassandra', 'hbase', 'elasticsearch', 'dynamodb',
+    
+    # --- Data Science & Machine Learning ---
+    'machine learning', 'deep learning', 'data science', 'data analysis', 'nlp',
+    'natural language processing', 'computer vision', 'data visualization',
+    'tensorflow', 'keras', 'pytorch', 'scikit-learn', 'pandas', 'numpy', 'matplotlib',
+    'seaborn', 'scipy', 'opencv', 'tableau', 'power bi', 'kibana', 'ggplot', 'd3.js',
+    'statistics', 'statistical modeling', 'a/b testing', 'econometrics',
+    'regression', 'classification', 'clustering', 'svm', 'naive bayes', 'knn', 'random forest', 
+    'decision trees', 'gradient boosting', 'xgboost', 'lightgbm', 'cluster analysis', 
+    'word embedding', 'sentiment analysis', 'dimensionality reduction', 'topic modelling', 
+    'lda', 'nmf', 'pca', 'neural networks', 'rnn', 'lstm', 'transformer',
+    
+    # --- Big Data & Data Engineering ---
+    'hadoop', 'spark', 'apache spark', 'hive', 'pig', 'etl', 'data warehousing',
+    'informatica', 'data stage', 'airflow', 'kafka',
+    
+    # --- Cloud & DevOps ---
+    'aws', 'azure', 'google cloud', 'gcp', 'docker', 'kubernetes', 'git', 'github', 
+    'gitlab', 'ci/cd', 'terraform', 'ansible', 'serverless',
+    
+    # --- Business & Finance ---
+    'business analysis', 'requirement gathering', 'business intelligence', 'financial analysis',
+    'financial modeling', 'accounting', 'auditing', 'sap', 'erp', 'excel',
+    'project management', 'agile', 'scrum', 'kanban', 'jira', 'product management',
+    'operations management', 'supply chain', 'logistics', 'pmp', 'six sigma',
+    
+    # --- Sales & Marketing ---
+    'sales', 'business development', 'marketing', 'digital marketing', 'seo', 'sem',
+    'content marketing', 'social media marketing', 'email marketing', 'google analytics',
+    'crm', 'salesforce', 'negotiation', 'lead generation',
+    
+    # --- HR & Recruiting ---
+    'human resources', 'recruiting', 'talent acquisition', 'screening', 'interviewing',
+    'employee relations', 'employee engagement', 'hris', 'onboarding', 'hr',
+    
+    # --- Design & Creative ---
+    'ui', 'ux', 'ui/ux', 'design thinking', 'figma', 'sketch', 'adobe xd',
+    'adobe photoshop', 'illustrator', 'indesign', 'graphic design', 'motion graphics',
+    'video editing', 'after effects', 'premiere pro',
+    
+    # --- Engineering (Non-Software) ---
+    'mechanical engineering', 'autocad', 'solidworks', 'catia', 'civil engineering',
+    'staad pro', 'electrical engineering', 'matlab',
+    
+    # --- Other Professional Skills ---
+    'testing', 'quality assurance', 'qa', 'automation testing', 'manual testing', 'selenium', 'qtp',
+    'blockchain', 'solidity', 'ethereum', 'advocate', 'legal', 'drafting', 'litigation',
+    'health', 'fitness', 'nutrition', 'training', 'yoga',
+    
+    # --- Soft Skills (Crucial for all roles) ---
     'communication', 'teamwork', 'leadership', 'problem solving', 'critical thinking',
     'analytical skills', 'collaboration', 'time management', 'adaptability'
 ]
 
-# --- 2. Define Helper Functions ---
+# --- Helper Functions ---
 
 def extract_text_from_pdf(file_path):
     doc = fitz.open(file_path)
@@ -66,25 +124,18 @@ def generate_suggestions(resume_skills, job_skills):
     resume_skills_set = set(resume_skills)
     job_skills_set = set(job_skills)
     missing_skills = list(job_skills_set - resume_skills_set)
-
     if not missing_skills:
         return "Excellent match! Your resume contains all the key skills mentioned in the job description."
-
-    suggestions = "To improve your match score, consider highlighting the following skills from the job description if you have relevant experience:\n"
+    suggestions = "To improve your match score, consider highlighting the following skills:\n"
     for skill in missing_skills:
         suggestions += f"- {skill.title()}\n"
-
-    suggestions += "\nTip: Make sure to mention these skills in the context of your projects or work experience to demonstrate your expertise."
+    suggestions += "\nTip: Mention these skills in your projects or experience."
     return suggestions
 
-# --- 3. Flask App ---
+# --- Flask App Setup ---
 
 app = Flask(__name__)
 CORS(app)
-
-@app.route("/")
-def home():
-    return "Resume Matcher API is live!"  # ✅ Optional root endpoint
 
 @app.route('/match', methods=['POST'])
 def match_resume_jd():
@@ -127,8 +178,6 @@ def match_resume_jd():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ Required for Render to detect port
-if __name__ == "_main_":
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    print(f"🚀 Starting app on port {port}...")
     app.run(host="0.0.0.0", port=port)
